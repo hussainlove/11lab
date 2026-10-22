@@ -1,0 +1,6 @@
+{
+  "name": "ElevenVoice - AI Text to Speech & Voice Clone Studio",
+  "description": "High-fidelity AI Text to Speech, Instant Voice Cloning, and Voice Design studio with offline processing support and limitless generation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
