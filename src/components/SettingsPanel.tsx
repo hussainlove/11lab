@@ -20,9 +20,28 @@ import {
   Layers,
   Wand2,
   Loader2,
+  Search,
+  X,
+  Music,
+  Square,
 } from 'lucide-react';
-import { Voice, AudioSettings, GenerationHistoryItem, OutputFormat } from '../types';
-import { downloadSpeechAsMp3 } from '../services/audioEngine';
+import {
+  Voice,
+  AudioSettings,
+  GenerationHistoryItem,
+  OutputFormat,
+  VOICE_TONE_OPTIONS,
+  VOICE_ACCENT_OPTIONS,
+  VOICE_SLANG_OPTIONS,
+  VOICE_LANGUAGE_OPTIONS,
+  BACKGROUND_MUSIC_OPTIONS,
+  BackgroundMusicMood,
+} from '../types';
+import {
+  downloadSpeechAsMp3,
+  previewBackgroundMusicSample,
+  stopBackgroundMusicPreview,
+} from '../services/audioEngine';
 
 interface SettingsPanelProps {
   voices: Voice[];
@@ -52,6 +71,27 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [activeTab, setActiveTab] = useState<'settings' | 'history'>('settings');
   const [showPromo, setShowPromo] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [showVoiceDropdown, setShowVoiceDropdown] = useState(false);
+  const [voiceSearchQuery, setVoiceSearchQuery] = useState('');
+  const [isPreviewingBgm, setIsPreviewingBgm] = useState(false);
+
+  const handleDownloadHistoryMp3 = async (item: GenerationHistoryItem) => {
+    if (downloadingId === item.id) return;
+    setDownloadingId(item.id);
+    try {
+      await downloadSpeechAsMp3(
+        item.audioUrl,
+        item.voiceName,
+        item.text,
+        settings.outputFormat === 'mp3_320' ? 320 : 128
+      );
+    } catch (e) {
+      console.error('History MP3 download error', e);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const updateSetting = <K extends keyof AudioSettings>(key: K, value: AudioSettings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -78,19 +118,19 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const modelOptions = [
     {
       id: 'eleven_v4',
-      name: 'Eleven v4 (Gemini 3.8 Flagship)',
+      name: 'HBL voicelab Flagship (Gemini 3.8)',
       badge: 'FASTEST & EMOTIVE',
       description: 'Supreme human emotional nuance, backchanneling & voice design',
     },
     {
       id: 'eleven_multilingual_v2',
-      name: 'Eleven Multilingual v2',
+      name: 'HBL voicelab Multilingual',
       badge: '30+ LANGUAGES',
       description: 'State of the art multilingual cross-language consistency',
     },
     {
       id: 'eleven_turbo_v2_5',
-      name: 'Eleven Turbo v2.5',
+      name: 'HBL voicelab Turbo',
       badge: 'LOW LATENCY',
       description: 'Streamlined for real-time conversational agents',
     },
@@ -110,24 +150,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     { id: 'flac', label: 'FLAC Lossless', desc: 'Audiophile archiving' },
   ];
 
-  const languageOptions = [
-    { code: 'auto', name: 'Auto-detect Language' },
-    { code: 'en', name: 'English (US/UK/AU)' },
-    { code: 'es', name: 'Spanish (Español)' },
-    { code: 'fr', name: 'French (Français)' },
-    { code: 'de', name: 'German (Deutsch)' },
-    { code: 'it', name: 'Italian (Italiano)' },
-    { code: 'pt', name: 'Portuguese (Português)' },
-    { code: 'ja', name: 'Japanese (日本語)' },
-    { code: 'zh', name: 'Chinese (Mandarin)' },
-    { code: 'hi', name: 'Hindi (हिन्दी)' },
-    { code: 'ar', name: 'Arabic (العربية)' },
-    { code: 'ru', name: 'Russian (Русский)' },
-    { code: 'nl', name: 'Dutch (Nederlands)' },
-    { code: 'pl', name: 'Polish (Polski)' },
-    { code: 'ko', name: 'Korean (한국어)' },
-    { code: 'sv', name: 'Swedish (Svenska)' },
-  ];
+  const languageOptions = VOICE_LANGUAGE_OPTIONS;
 
   return (
     <div className="w-full h-full flex flex-col bg-gray-50/60 dark:bg-zinc-950/60 border-l border-gray-200/80 dark:border-zinc-800">
@@ -169,7 +192,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <>
             {/* Promo Card: Try Studio (ElevenLabs banner) */}
             {showPromo && (
-              <div className="relative p-3.5 rounded-2xl bg-gradient-to-br from-indigo-50/70 to-blue-50/40 dark:from-indigo-950/30 dark:to-zinc-900 border border-indigo-100 dark:border-indigo-900/40 shadow-xs">
+              <div className="relative p-3.5 rounded-2xl bg-gradient-to-br from-indigo-50/70 to-blue-50/40 dark:from-indigo-950/30 dark:to-zinc-900 border border-indigo-200 dark:border-indigo-900/60 glow-box-indigo">
                 <button
                   onClick={() => setShowPromo(false)}
                   className="absolute top-2.5 right-2.5 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-md"
@@ -182,7 +205,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   </div>
                   <div className="pr-4">
                     <h4 className="text-xs font-semibold text-gray-900 dark:text-white">
-                      Try Eleven Studio
+                      Try HBL voicelab Studio
                     </h4>
                     <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-0.5 leading-snug">
                       Produce complete voiceovers, background music and SFX in one timeline editor.
@@ -207,26 +230,337 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </button>
               </div>
 
-              <div
-                onClick={onOpenVoiceLibrary}
-                className="w-full p-2.5 bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-zinc-800 shadow-2xs hover:border-gray-300 dark:hover:border-zinc-700 transition-all cursor-pointer flex items-center justify-between gap-3 group"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <img
-                    src={selectedVoice.avatarUrl}
-                    alt={selectedVoice.name}
-                    className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-gray-200 dark:ring-zinc-700"
-                  />
-                  <div className="truncate">
-                    <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
-                      {selectedVoice.name}
-                    </p>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
-                      {selectedVoice.accent} • {selectedVoice.gender} • {selectedVoice.useCase}
-                    </p>
+              <div className="relative">
+                <div
+                  onClick={() => {
+                    setShowVoiceDropdown(!showVoiceDropdown);
+                    setVoiceSearchQuery('');
+                  }}
+                  className="w-full p-2.5 bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-zinc-800 glow-box-cyan transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <img
+                      src={selectedVoice.avatarUrl}
+                      alt={selectedVoice.name}
+                      className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-gray-200 dark:ring-zinc-700"
+                    />
+                    <div className="truncate">
+                      <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                        {selectedVoice.name}
+                      </p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                        {selectedVoice.accent} • {selectedVoice.gender} • {selectedVoice.useCase}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200 shrink-0" />
+                </div>
+
+                {/* Inline Speaker Selector Dropdown inside Settings */}
+                {showVoiceDropdown && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 max-h-72 flex flex-col bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl z-50 overflow-hidden">
+                    <div className="p-2 border-b border-gray-100 dark:border-zinc-800 bg-gray-50/70 dark:bg-zinc-900/70">
+                      <div className="relative flex items-center">
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 text-gray-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          autoFocus
+                          value={voiceSearchQuery}
+                          onChange={(e) => setVoiceSearchQuery(e.target.value)}
+                          placeholder="Search speaker..."
+                          className="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                        />
+                        {voiceSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setVoiceSearchQuery('')}
+                            className="absolute right-2 p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-1.5 space-y-1">
+                      {voices
+                        .filter((v) => {
+                          const q = voiceSearchQuery.toLowerCase().trim();
+                          if (!q) return true;
+                          return (
+                            v.name.toLowerCase().includes(q) ||
+                            v.accent.toLowerCase().includes(q) ||
+                            v.useCase.toLowerCase().includes(q)
+                          );
+                        })
+                        .map((v) => (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedVoice(v);
+                              setShowVoiceDropdown(false);
+                              setVoiceSearchQuery('');
+                            }}
+                            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs text-left hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-700 dark:text-gray-200 transition-colors"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <img
+                                src={v.avatarUrl}
+                                alt={v.name}
+                                className="w-5 h-5 rounded-full object-cover shrink-0"
+                              />
+                              <div className="truncate">
+                                <p className="font-medium truncate text-gray-900 dark:text-gray-100">
+                                  {v.name}
+                                </p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+                                  {v.accent} • {v.gender}
+                                </p>
+                              </div>
+                            </div>
+                            {v.id === selectedVoice.id && (
+                              <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 ml-1" />
+                            )}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Voice Tone & Accent Dropdowns */}
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Voice Tone
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={settings.tone || 'natural'}
+                      onChange={(e) => updateSetting('tone', e.target.value)}
+                      className="w-full p-2 pr-6 text-xs font-medium rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 glow-box-amber text-gray-800 dark:text-gray-200 appearance-none focus:outline-hidden cursor-pointer"
+                    >
+                      {VOICE_TONE_OPTIONS.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
-                <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200 shrink-0" />
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Voice Accent
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={settings.accent || 'default'}
+                      onChange={(e) => updateSetting('accent', e.target.value)}
+                      className="w-full p-2 pr-6 text-xs font-medium rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 glow-box-violet text-gray-800 dark:text-gray-200 appearance-none focus:outline-hidden cursor-pointer"
+                    >
+                      {VOICE_ACCENT_OPTIONS.map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Human Slang & Auto-Humanize Controls */}
+              <div className="pt-1 space-y-2.5">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Human Slang & Conversational Fillers
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={settings.slangMode || 'auto_human'}
+                      onChange={(e) => {
+                        const mode = e.target.value;
+                        updateSetting('slangMode', mode);
+                        updateSetting('autoHumanizeSlang', mode !== 'none');
+                      }}
+                      className="w-full p-2 pr-6 text-xs font-medium rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 glow-box-emerald text-gray-800 dark:text-gray-200 appearance-none focus:outline-hidden cursor-pointer"
+                    >
+                      {VOICE_SLANG_OPTIONS.map((sl) => (
+                        <option key={sl.id} value={sl.id}>
+                          {sl.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between bg-white dark:bg-zinc-900 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-800 glow-box-emerald">
+                  <div>
+                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                      Auto-Slang (Humanize Voice)
+                    </p>
+                    <p className="text-[10px] text-gray-400">
+                      Adds natural fillers (yaar, matlab, you know, honestly) for human realism
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !settings.autoHumanizeSlang;
+                      updateSetting('autoHumanizeSlang', nextVal);
+                      if (nextVal && settings.slangMode === 'none') {
+                        updateSetting('slangMode', 'auto_human');
+                      }
+                    }}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                      settings.autoHumanizeSlang
+                        ? 'bg-emerald-600 dark:bg-emerald-500'
+                        : 'bg-gray-200 dark:bg-zinc-700'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white dark:bg-zinc-950 shadow-sm transition duration-200 ease-in-out ${
+                        settings.autoHumanizeSlang ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Copyright-Free Per-Voice Background Music Card */}
+                {(() => {
+                  const currentVoiceBgm =
+                    settings.voiceBgmMap?.[selectedVoice.id] || settings.bgMusicMood || 'none';
+                  const isVoiceBgmEnabled = currentVoiceBgm !== 'none';
+                  const shortVoiceName = selectedVoice.name.split(' - ')[0];
+
+                  const setVoiceBgmMood = (nextMood: BackgroundMusicMood) => {
+                    setSettings((prev) => ({
+                      ...prev,
+                      bgMusicMood: nextMood,
+                      voiceBgmMap: {
+                        ...(prev.voiceBgmMap || {}),
+                        [selectedVoice.id]: nextMood,
+                      },
+                    }));
+                  };
+
+                  return (
+                    <div className="p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 glow-box-rose space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Music
+                            className={`w-3.5 h-3.5 shrink-0 ${
+                              isVoiceBgmEnabled ? 'text-rose-500' : 'text-gray-400'
+                            }`}
+                          />
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 truncate">
+                            BGM for {shortVoiceName}
+                          </label>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (isPreviewingBgm) {
+                                stopBackgroundMusicPreview();
+                                setIsPreviewingBgm(false);
+                                return;
+                              }
+                              const moodToPlay =
+                                currentVoiceBgm === 'none' ? 'auto' : currentVoiceBgm;
+                              setIsPreviewingBgm(true);
+                              await previewBackgroundMusicSample({
+                                mood: moodToPlay,
+                                volume: settings.bgMusicVolume ?? 0.18,
+                                text: '',
+                                tone: settings.tone,
+                                voiceName: selectedVoice.name,
+                                voiceDescription: selectedVoice.description,
+                                voiceUseCase: selectedVoice.useCase,
+                                onEnded: () => setIsPreviewingBgm(false),
+                              });
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/70 transition-colors cursor-pointer"
+                          >
+                            {isPreviewingBgm ? (
+                              <>
+                                <Square className="w-2.5 h-2.5 fill-current" />
+                                <span>Stop</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-2.5 h-2.5 fill-current" />
+                                <span>Preview</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setVoiceBgmMood(isVoiceBgmEnabled ? 'none' : 'auto')}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                              isVoiceBgmEnabled
+                                ? 'bg-rose-600 text-white'
+                                : 'bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-300'
+                            }`}
+                          >
+                            {isVoiceBgmEnabled ? 'BGM: ON' : 'BGM: OFF'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="relative">
+                        <select
+                          value={currentVoiceBgm}
+                          onChange={(e) => setVoiceBgmMood(e.target.value as BackgroundMusicMood)}
+                          className="w-full p-2 pr-6 text-xs font-medium rounded-xl bg-gray-50 dark:bg-zinc-800/90 border border-gray-200 dark:border-zinc-700 text-gray-800 dark:text-gray-200 appearance-none focus:outline-hidden cursor-pointer"
+                        >
+                          {BACKGROUND_MUSIC_OPTIONS.map((bgm) => (
+                            <option key={bgm.id} value={bgm.id}>
+                              {bgm.label}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                      </div>
+
+                      {isVoiceBgmEnabled ? (
+                        <div className="space-y-1 pt-0.5">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-gray-500 dark:text-gray-400 font-medium">
+                              BGM Level (Dheema & Impactful)
+                            </span>
+                            <span className="font-mono font-semibold text-rose-600 dark:text-rose-400">
+                              {Math.round((settings.bgMusicVolume ?? 0.18) * 100)}%
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0.05"
+                            max="0.40"
+                            step="0.01"
+                            value={settings.bgMusicVolume ?? 0.18}
+                            onChange={(e) =>
+                              updateSetting('bgMusicVolume', parseFloat(e.target.value))
+                            }
+                            className="w-full accent-rose-500 cursor-pointer h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg"
+                          />
+                          <p className="text-[10px] text-gray-400 leading-snug">
+                            BGM is ON for {shortVoiceName}. Auto-ducks underneath speech so voice stays crystal clear.
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-gray-400 leading-snug">
+                          BGM is currently OFF for {shortVoiceName} (Voice Only). Turn it ON above when you want background music for this voice.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -236,42 +570,50 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 AI Speech Model
               </label>
 
-              <div className="space-y-1.5">
-                {modelOptions.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => {
-                      updateSetting('modelId', m.id);
-                      if (m.id === 'offline_webaudio_engine') {
-                        updateSetting('offlineMode', true);
-                      } else {
-                        updateSetting('offlineMode', false);
-                      }
-                    }}
-                    className={`w-full p-2.5 rounded-xl border text-left transition-all flex items-start justify-between gap-2 ${
-                      settings.modelId === m.id
-                        ? 'bg-white dark:bg-zinc-900 border-black dark:border-white shadow-xs'
-                        : 'bg-white/60 dark:bg-zinc-900/40 border-gray-200 dark:border-zinc-800 hover:bg-white dark:hover:bg-zinc-900'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-semibold text-gray-900 dark:text-white">
-                          {m.name}
-                        </span>
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                          {m.badge}
-                        </span>
+              <div className="space-y-2">
+                {modelOptions.map((m, idx) => {
+                  const modelGlows = [
+                    'glow-box-cyan',
+                    'glow-box-violet',
+                    'glow-box-amber',
+                    'glow-box-emerald',
+                  ];
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => {
+                        updateSetting('modelId', m.id);
+                        if (m.id === 'offline_webaudio_engine') {
+                          updateSetting('offlineMode', true);
+                        } else {
+                          updateSetting('offlineMode', false);
+                        }
+                      }}
+                      className={`w-full p-2.5 rounded-xl border text-left transition-all flex items-start justify-between gap-2 cursor-pointer ${modelGlows[idx % modelGlows.length]} ${
+                        settings.modelId === m.id
+                          ? 'bg-white dark:bg-zinc-900 ring-1 ring-blue-500/40'
+                          : 'bg-white/75 dark:bg-zinc-900/50 border-gray-200 dark:border-zinc-800 hover:bg-white dark:hover:bg-zinc-900'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                            {m.name}
+                          </span>
+                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                            {m.badge}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                          {m.description}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                        {m.description}
-                      </p>
-                    </div>
-                    {settings.modelId === m.id && (
-                      <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                    )}
-                  </button>
-                ))}
+                      {settings.modelId === m.id && (
+                        <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -291,10 +633,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </div>
 
               {/* Stability Slider */}
-              <div className="space-y-1.5 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800">
+              <div className="space-y-1.5 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800 glow-box-cyan">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-gray-800 dark:text-gray-200">Stability</span>
-                  <span className="font-mono text-gray-500">
+                  <span className="font-mono text-cyan-600 dark:text-cyan-400 font-semibold">
                     {Math.round(settings.stability * 100)}%
                   </span>
                 </div>
@@ -305,7 +647,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   step="0.01"
                   value={settings.stability}
                   onChange={(e) => updateSetting('stability', parseFloat(e.target.value))}
-                  className="w-full accent-blue-600 dark:accent-blue-400 cursor-pointer h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg"
+                  className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg"
                 />
                 <div className="flex justify-between text-[10px] text-gray-400">
                   <span>More variable / Creative</span>
@@ -314,12 +656,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </div>
 
               {/* Similarity Slider */}
-              <div className="space-y-1.5 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800">
+              <div className="space-y-1.5 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800 glow-box-emerald">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-gray-800 dark:text-gray-200">
                     Clarity + Similarity
                   </span>
-                  <span className="font-mono text-gray-500">
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
                     {Math.round(settings.similarity * 100)}%
                   </span>
                 </div>
@@ -330,7 +672,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   step="0.01"
                   value={settings.similarity}
                   onChange={(e) => updateSetting('similarity', parseFloat(e.target.value))}
-                  className="w-full accent-blue-600 dark:accent-blue-400 cursor-pointer h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg"
+                  className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg"
                 />
                 <div className="flex justify-between text-[10px] text-gray-400">
                   <span>Low</span>
@@ -338,11 +680,36 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </div>
               </div>
 
+              {/* Style Exaggeration Slider */}
+              <div className="space-y-1.5 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800 glow-box-violet">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-gray-800 dark:text-gray-200">
+                    Style Exaggeration
+                  </span>
+                  <span className="font-mono text-purple-600 dark:text-purple-400 font-semibold">
+                    {Math.round(settings.styleExaggeration * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={settings.styleExaggeration}
+                  onChange={(e) => updateSetting('styleExaggeration', parseFloat(e.target.value))}
+                  className="w-full accent-purple-500 cursor-pointer h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg"
+                />
+                <div className="flex justify-between text-[10px] text-gray-400">
+                  <span>None (Fastest)</span>
+                  <span>Exaggerated</span>
+                </div>
+              </div>
+
               {/* Speed Slider */}
-              <div className="space-y-1.5 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800">
+              <div className="space-y-1.5 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800 glow-box-amber">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-gray-800 dark:text-gray-200">Speed</span>
-                  <span className="font-mono text-gray-500">{settings.speed.toFixed(2)}x</span>
+                  <span className="font-mono text-amber-600 dark:text-amber-400 font-semibold">{settings.speed.toFixed(2)}x</span>
                 </div>
                 <input
                   type="range"
@@ -351,7 +718,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   step="0.05"
                   value={settings.speed}
                   onChange={(e) => updateSetting('speed', parseFloat(e.target.value))}
-                  className="w-full accent-blue-600 dark:accent-blue-400 cursor-pointer h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg"
+                  className="w-full accent-amber-500 cursor-pointer h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg"
                 />
                 <div className="flex justify-between text-[10px] text-gray-400">
                   <span>0.5x Slow</span>
@@ -361,10 +728,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </div>
 
               {/* Pitch Shift Slider */}
-              <div className="space-y-1.5 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800">
+              <div className="space-y-1.5 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800 glow-box-rose">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-gray-800 dark:text-gray-200">Pitch Offset</span>
-                  <span className="font-mono text-gray-500">
+                  <span className="font-mono text-rose-600 dark:text-rose-400 font-semibold">
                     {settings.pitch > 0 ? `+${settings.pitch}` : settings.pitch} st
                   </span>
                 </div>
@@ -375,7 +742,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   step="1"
                   value={settings.pitch}
                   onChange={(e) => updateSetting('pitch', parseInt(e.target.value, 10))}
-                  className="w-full accent-blue-600 dark:accent-blue-400 cursor-pointer h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg"
+                  className="w-full accent-rose-500 cursor-pointer h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg"
                 />
                 <div className="flex justify-between text-[10px] text-gray-400">
                   <span>-5 Deep</span>
@@ -385,7 +752,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </div>
 
               {/* Speaker Boost Toggle */}
-              <div className="flex items-center justify-between bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800">
+              <div className="flex items-center justify-between bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800 glow-box-indigo">
                 <div>
                   <p className="text-xs font-medium text-gray-800 dark:text-gray-200">Speaker Boost</p>
                   <p className="text-[10px] text-gray-400">
@@ -396,11 +763,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   type="button"
                   onClick={() => updateSetting('speakerBoost', !settings.speakerBoost)}
                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                    settings.speakerBoost ? 'bg-black dark:bg-white' : 'bg-gray-200 dark:bg-zinc-700'
+                    settings.speakerBoost ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-gray-200 dark:bg-zinc-700'
                   }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white dark:bg-zinc-900 shadow-sm transition duration-200 ease-in-out ${
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white dark:bg-zinc-950 shadow-sm transition duration-200 ease-in-out ${
                       settings.speakerBoost ? 'translate-x-4' : 'translate-x-0'
                     }`}
                   />
@@ -413,13 +780,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               {/* Language Selection */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Language
+                  Language ({languageOptions.length} Global Languages)
                 </label>
                 <div className="relative">
                   <select
                     value={settings.language}
-                    onChange={(e) => updateSetting('language', e.target.value)}
-                    className="w-full p-2.5 text-xs font-medium rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-800 dark:text-gray-200 appearance-none focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                    onChange={(e) => {
+                      const code = e.target.value;
+                      const matchedLang = languageOptions.find((l) => l.code === code);
+                      setSettings((prev) => ({
+                        ...prev,
+                        language: code,
+                        accent: matchedLang?.defaultAccent || prev.accent,
+                      }));
+                    }}
+                    className="w-full p-2.5 text-xs font-medium rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 glow-box-cyan text-gray-800 dark:text-gray-200 appearance-none focus:outline-hidden cursor-pointer"
                   >
                     {languageOptions.map((lang) => (
                       <option key={lang.code} value={lang.code}>
@@ -440,7 +815,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <select
                     value={settings.outputFormat}
                     onChange={(e) => updateSetting('outputFormat', e.target.value as OutputFormat)}
-                    className="w-full p-2.5 text-xs font-medium rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-800 dark:text-gray-200 appearance-none focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                    className="w-full p-2.5 text-xs font-medium rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 glow-box-violet text-gray-800 dark:text-gray-200 appearance-none focus:outline-hidden cursor-pointer"
                   >
                     {formatOptions.map((fmt) => (
                       <option key={fmt.id} value={fmt.id}>
@@ -463,8 +838,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             </div>
 
             {history.length === 0 ? (
-              <div className="text-center py-12 px-4 rounded-2xl bg-white dark:bg-zinc-900 border border-dashed border-gray-200 dark:border-zinc-800">
-                <Clock className="w-8 h-8 mx-auto text-gray-400 dark:text-gray-600 mb-2 opacity-60" />
+              <div className="text-center py-12 px-4 rounded-2xl bg-white dark:bg-zinc-900 border border-dashed border-gray-200 dark:border-zinc-800 glow-box-cyan">
+                <Clock className="w-8 h-8 mx-auto text-cyan-500 mb-2 opacity-80" />
                 <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                   No speech generated yet
                 </p>
@@ -473,12 +848,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {history.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3 bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 transition-all shadow-2xs space-y-2 group"
-                  >
+              <div className="space-y-2.5">
+                {history.map((item, idx) => {
+                  const historyGlows = [
+                    'glow-box-cyan',
+                    'glow-box-violet',
+                    'glow-box-emerald',
+                    'glow-box-amber',
+                    'glow-box-rose',
+                    'glow-box-indigo',
+                  ];
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-3 bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-zinc-800 ${historyGlows[idx % historyGlows.length]} transition-all space-y-2 group`}
+                    >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <img
@@ -491,7 +875,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         </span>
                       </div>
                       <span className="text-[10px] text-gray-400 font-mono">
-                        {item.duration.toFixed(1)}s • {item.characterCount} ch
+                        {item.duration >= 3600
+                          ? `${Math.floor(item.duration / 3600)}h ${Math.floor((item.duration % 3600) / 60)}m`
+                          : item.duration >= 60
+                          ? `${Math.floor(item.duration / 60)}m ${Math.round(item.duration % 60)}s`
+                          : `${item.duration.toFixed(1)}s`} • {item.characterCount.toLocaleString()} ch
                       </span>
                     </div>
 
@@ -521,14 +909,19 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                           )}
                         </button>
 
-                        <a
-                          href={item.audioUrl}
-                          download={`elevenvoice-${item.voiceName.toLowerCase().replace(/\s+/g, '-')}-${item.id}.wav`}
-                          className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                          title="Download audio"
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadHistoryMp3(item)}
+                          disabled={downloadingId === item.id}
+                          className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                          title="Download MP3"
                         >
-                          <Download className="w-3.5 h-3.5" />
-                        </a>
+                          {downloadingId === item.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5" />
+                          )}
+                        </button>
 
                         <button
                           onClick={() => onDeleteHistoryItem(item.id)}
@@ -540,9 +933,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          )}
           </div>
         )}
       </div>

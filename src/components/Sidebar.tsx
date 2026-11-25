@@ -65,17 +65,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         {/* Top Header Logo */}
         <div className="flex items-center justify-between h-14 px-4 border-b border-gray-200/60 dark:border-zinc-800/80 shrink-0">
-          <div className="flex items-center gap-2.5">
-            {/* ElevenLabs stylized dual bars icon */}
-            <div className="flex items-center gap-1">
-              <span className="w-1.5 h-6 bg-black dark:bg-white rounded-full inline-block"></span>
-              <span className="w-1.5 h-6 bg-black dark:bg-white rounded-full inline-block"></span>
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Stylish HBL VoiceLab geometric acoustic emblem */}
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-zinc-900 via-slate-800 to-cyan-950 dark:from-white dark:via-zinc-100 dark:to-cyan-100 flex items-center justify-center shadow-sm ring-1 ring-black/10 dark:ring-white/20 shrink-0">
+              <svg viewBox="0 0 24 24" className="w-4.5 h-4.5 text-cyan-400 dark:text-cyan-700" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round">
+                <line x1="5" y1="9" x2="5" y2="15" />
+                <line x1="9.5" y1="5" x2="9.5" y2="19" />
+                <line x1="14.5" y1="7" x2="14.5" y2="17" />
+                <line x1="19" y1="10" x2="19" y2="14" />
+              </svg>
             </div>
-            <div className="flex items-baseline">
-              <span className="font-semibold text-lg tracking-tight text-gray-900 dark:text-white">ElevenVoice</span>
-              <span className="ml-1 text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300">
-                Studio
-              </span>
+            <div className="brand-wordmark flex items-baseline gap-1 whitespace-nowrap shrink-0">
+              <span className="font-extrabold text-[17px] text-gray-950 dark:text-white tracking-tight">HBL</span>
+              <span className="font-medium text-[17px] bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 dark:from-cyan-400 dark:via-sky-300 dark:to-indigo-400 bg-clip-text text-transparent">voicelab</span>
             </div>
           </div>
         </div>
@@ -172,17 +174,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   setActiveTab('tts');
                   setIsOpenMobile(false);
                 }}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl font-medium transition-colors ${
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl font-medium border transition-all ${
                   activeTab === 'tts'
-                    ? 'bg-gray-200/80 dark:bg-zinc-800 text-gray-900 dark:text-white shadow-xs'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-zinc-900 hover:text-gray-900 dark:hover:text-gray-200'
+                    ? 'bg-cyan-50/60 dark:bg-zinc-900 text-gray-900 dark:text-white border-cyan-400/50 glow-box-cyan'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-zinc-900 hover:text-gray-900 dark:hover:text-gray-200 hover:translate-x-1'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Volume2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <Volume2 className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                   <span>Text to Speech</span>
                 </div>
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse"></span>
               </button>
 
               <button
@@ -190,7 +191,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onOpenVoiceCloneModal();
                   setIsOpenMobile(false);
                 }}
-                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-zinc-900 hover:text-gray-900 dark:hover:text-white transition-colors group"
+                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl font-medium text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-zinc-900/60 border border-purple-300/40 dark:border-purple-800/40 glow-box-violet hover:text-gray-900 dark:hover:text-white transition-all group cursor-pointer"
               >
                 <div className="flex items-center gap-2.5">
                   <Wand2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
@@ -204,7 +205,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   setActiveTab('sound-effects');
                   setIsOpenMobile(false);
                 }}
-                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-zinc-900 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-zinc-900 hover:text-gray-900 dark:hover:text-gray-200 hover:translate-x-1 transition-all"
               >
                 <Sparkles className="w-4 h-4 text-amber-500" />
                 <span>Sound Effects</span>
@@ -215,7 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   setActiveTab('voice-changer');
                   setIsOpenMobile(false);
                 }}
-                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-zinc-900 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-zinc-900 hover:text-gray-900 dark:hover:text-gray-200 hover:translate-x-1 transition-all"
               >
                 <Radio className="w-4 h-4 text-emerald-500" />
                 <span>Voice Changer</span>
@@ -226,7 +227,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   setActiveTab('audiobooks');
                   setIsOpenMobile(false);
                 }}
-                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-zinc-900 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-zinc-900 hover:text-gray-900 dark:hover:text-gray-200 hover:translate-x-1 transition-all"
               >
                 <Headphones className="w-4 h-4 text-indigo-500" />
                 <span>Audiobooks</span>
@@ -237,7 +238,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   setActiveTab('speech-to-text');
                   setIsOpenMobile(false);
                 }}
-                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-zinc-900 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-zinc-900 hover:text-gray-900 dark:hover:text-gray-200 hover:translate-x-1 transition-all"
               >
                 <FileAudio className="w-4 h-4 text-cyan-500" />
                 <span>Speech to Text</span>
@@ -246,7 +247,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Engine Processing Mode Banner */}
-          <div className="p-3 bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 shadow-xs space-y-2">
+          <div className="p-3 bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 glow-box-cyan space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                 {offlineMode ? (
@@ -256,7 +257,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </>
                 ) : (
                   <>
-                    <Globe className="w-3.5 h-3.5 text-blue-500" />
+                    <Globe className="w-3.5 h-3.5 text-cyan-500" />
                     Cloud Turbo (v4)
                   </>
                 )}
@@ -265,7 +266,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 type="button"
                 onClick={() => setOfflineMode(!offlineMode)}
                 className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                  offlineMode ? 'bg-amber-500' : 'bg-gray-300 dark:bg-zinc-700'
+                  offlineMode ? 'bg-amber-500' : 'bg-cyan-600 dark:bg-cyan-500'
                 }`}
                 role="switch"
                 aria-checked={offlineMode}
@@ -285,7 +286,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Limitless Plan Banner */}
-          <div className="relative overflow-hidden p-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-zinc-900 dark:to-zinc-950">
+          <div className="relative overflow-hidden p-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-zinc-900 dark:to-zinc-950 glow-box-amber">
             <div className="flex items-center gap-2 mb-1">
               <div className="p-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
                 <Zap className="w-3.5 h-3.5" />
@@ -304,21 +305,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Footer info & theme toggle */}
         <div className="p-3 border-t border-gray-200/80 dark:border-zinc-800 shrink-0 space-y-2">
-          <div className="flex items-center justify-between px-2 py-1 rounded-xl bg-gray-100/60 dark:bg-zinc-900/60">
+          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 glow-box-indigo">
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-md bg-black text-white dark:bg-white dark:text-black flex items-center justify-center font-bold text-[10px]">
-                EC
+              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-zinc-900 to-cyan-900 text-cyan-300 dark:from-white dark:to-cyan-100 dark:text-cyan-800 flex items-center justify-center font-extrabold text-[9px] tracking-tighter shrink-0">
+                HBL
               </div>
-              <span className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate max-w-[100px]">
-                ElevenCreative
+              <span className="brand-wordmark text-xs font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[115px]">
+                HBL voicelab
               </span>
             </div>
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className="p-1 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors"
+              className="p-1 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
               title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {darkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              {darkMode ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-500" />}
             </button>
           </div>
         </div>
